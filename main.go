@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"math/big"
 	"strconv"
 	"time"
 )
@@ -20,6 +21,15 @@ type Block struct {
 type Blockchain struct {
 	blocks []*Block
 }
+
+// ProofOfWork struct defination
+type ProofOfWork struct {
+	block  *Block
+	target *big.Int
+}
+
+// targetBits define mining difficulty level
+const targetBits = 24
 
 // SetHash method calculates the hash value
 func (b *Block) SetHash() {
@@ -53,6 +63,36 @@ func NewGenesisBlock() *Block {
 // NewBlockChain uses NewGenesisBlock Block to create the initial chain
 func NewBlockChain() *Blockchain {
 	return &Blockchain{[]*Block{NewGenesisBlock()}}
+}
+
+// NewProofOfWork checks proof or work
+func NewProofOfWork(b *Block) *ProofOfWork {
+	target := big.NewInt(1)
+	target.Lsh(target, uint(256-targetBits))
+
+	pow := &ProofOfWork{b, target}
+
+	return pow
+}
+
+// IntToHex convert int64 to Hex value
+func IntToHex(n int64) []byte {
+	return []byte(strconv.FormatInt(n, 16))
+}
+
+func (pow *ProofOfWork) prepareData(nonce int) []byte {
+	data := bytes.Join(
+		[][]byte{
+			pow.block.PrevBlockHash,
+			pow.block.Data,
+			IntToHex(pow.block.Timestamp),
+			IntToHex(int64(targetBits)),
+			IntToHex(int64(nonce)),
+		},
+		[]byte{},
+	)
+
+	return data
 }
 
 func main() {
